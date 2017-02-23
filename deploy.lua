@@ -19,24 +19,6 @@ model_bin   = "bin/rnnTracker_r300_l1_n1_m1_d4.t7"
 
 -- fucking global variables:
 ------------------------------------------------------------
--- opt = {
---  max_n=1,
---  max_m=1,
---  rnn_size=300, -- whatever this is
---  num_layers=1,
---  model="rnn",
---  length=50, -- this is max number of frames!
---  det_fail=.1,
---  det_false=.2,
---  state_dim=4,
---  mini_batch_size=1,
---  gpuid=-1,
---  opencl=0,
---  verbose=2,
---  seed=12,
---  real_data=1
--- }
--- opt.temp_win = opt.length
 opt = {
     model_split=0,
     dalink=1,
