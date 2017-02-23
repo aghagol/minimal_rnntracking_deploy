@@ -65,7 +65,7 @@ function plot(data, winID, winTitle, rawStr, save)
     gnuplot.raw('set term pngcairo enhanced font "arial,10" fontscale 1.0 size 2000,1000;')
 
     -- make sure output directory exists (TODO take care of global vars here)
-    local _,_,modelName,modelSign = getCheckptFilename(modelName, opt, modelParams)
+    -- local _,_,modelName,modelSign = getCheckptFilename(modelName, opt, modelParams)
     local outDir = string.format('/home/mo/github/rnntracking/tmp/%s_%s',modelName, modelSign)
     if not lfs.attributes(outDir,'mode') then 
       print(string.format("mkdir %s",outDir))

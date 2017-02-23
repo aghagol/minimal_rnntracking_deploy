@@ -4,20 +4,34 @@ require "nngraph"
 require "util"
 require "optim"
 require "lfs"
-
+-- local util
 require "util.plot"
 require "util.data"
 require "util.misc"
 require "external.hungarian"
-
 require 'auxBFPAR'
+
+------------------------------------------------------------
+-- helper functions
+------------------------------------------------------------
+function getLocFromFullState(state)
+  -- remove velocities estimations
+  if opt.vel~=0 then
+    ind = torch.linspace(1,fullStateDim-1,fullStateDim/2):long()
+    state = state:index(3,ind)
+  end
+  return state
+end
+------------------------------------------------------------
+-- end: helper functions
+------------------------------------------------------------
 
 -- model and data paths
 seq_name    = "train/KITTI-13"
 model_bin   = "bin/rnnTracker_r300_l1_n1_m1_d4.t7"
 
-
--- fucking global variables:
+------------------------------------------------------------
+-- fucking global variables
 ------------------------------------------------------------
 opt = {
     model_split=0,
@@ -125,6 +139,8 @@ xSize = stateDim*maxTargets
 dSize = stateDim*maxDets
 T = opt.temp_win - opt.batch_size
 ------------------------------------------------------------
+-- end: fucking global variables
+------------------------------------------------------------
 
 -- torch configuration
 torch.setdefaulttensortype('torch.FloatTensor')
@@ -168,7 +184,8 @@ for tar=1,maxAllTargets do
     table.insert(protosClones, protos.rnn:clone())
 end
 
--- prediction:
+------------------------------------------------------------
+-- predict
 ------------------------------------------------------------
 predictions = {}
 Allpredictions = {}
@@ -186,16 +203,11 @@ end
 stateLocs, stateLocs2, stateDA, stateEx, statePred = {}, {}, {}, {}, {}
 AllstateLocs, AllstateLocs2, AllstateDA, AllstateEx, AllstatePred = {}, {}, {}, {}, {}
 for tar=1,maxAllTargets do
-  AllstateLocs[tar]={}
-  for t=1,T do AllstateLocs[tar][t] = {} end
-  AllstateLocs2[tar]={}
-  for t=1,T do AllstateLocs2[tar][t] = {} end
-  AllstateDA[tar]={}
-  for t=1,T do AllstateDA[tar][t] = {} end
-  AllstateEx[tar]={}
-  for t=1,T do AllstateEx[tar][t] = {} end
-  AllstatePred[tar]={}
-  for t=1,T do AllstatePred[tar][t] = {} end
+  AllstateLocs[tar]={} for t=1,T do AllstateLocs[tar][t] = {} end
+  AllstateLocs2[tar]={} for t=1,T do AllstateLocs2[tar][t] = {} end
+  AllstateDA[tar]={} for t=1,T do AllstateDA[tar][t] = {} end
+  AllstateEx[tar]={} for t=1,T do AllstateEx[tar][t] = {} end
+  AllstatePred[tar]={} for t=1,T do AllstatePred[tar][t] = {} end
 end
 
 for t=1,T do
@@ -230,10 +242,105 @@ for t=1,T do
         AllstateLocs2[tar] = B[tar]:clone()
     end
 end
+------------------------------------------------------------
+-- end: predict
+------------------------------------------------------------
+
+------------------------------------------------------------
+-- compute tracks
+------------------------------------------------------------
+AllpredTracks, AllpredTracks2, allpredDA, allpredEx = decode(Allpredictions)
+predTracks = torch.zeros(1,T,stateDim)
+-- predDA = torch.zeros(1,T,nClasses)
+predEx = torch.zeros(1,T,1)
+for tar=1,maxAllTargets do
+  predTracks = predTracks:cat(AllpredTracks[tar], 1)
+  -- predDA = predDA:cat(allpredDA[tar], 1)
+  predEx = predEx:cat(allpredEx[tar], 1)
+end
+predTracks = predTracks:sub(2,-1)
+-- predDA = predDA:sub(2,-1)
+predEx = predEx:sub(2,-1)
+-- predDA = allPredDA:clone() -- why???
+predTracks = getLocFromFullState(predTracks)
+predExBin = getPredEx(predEx)
+-- predLab = getLabelsFromLL(predDA, false)
+finalTracks = predTracks:clone()
 
 
+AllunnormDetsTab={}
+for k,v in pairs(AllDetsTab) do AllunnormDetsTab[k] = AllDetsTab[k]:clone() end
+
+N,F,D = getDataSize(finalTracks)
+for t=1,F do -- what is this for???
+  for i=1,N do
+    if predExBin[i][t] == 0 then finalTracks[i][t] = 0  end
+  end
+end
+
+finalTracksTab={}
+table.insert(finalTracksTab, finalTracks)
+
+if realData then
+  finalTracksTab = normalizeData(finalTracksTab, AllunnormDetsTab, true, maxAllTargets, maxAllDets, realSeqNames)
+end
+
+writeResTensor = finalTracksTab[1]
+
+-- smash existence probability as dim = 5
+writeResTensor = writeResTensor:cat(predEx, 3)
+
+-- remove false tracks
+writeResTensor = writeResTensor:sub(1,maxAllTargets)
+
+writeTXT(writeResTensor, string.format("out.txt"))
+------------------------------------------------------------
+-- end: compute tracks
 ------------------------------------------------------------
 
 
+------------------------------------------------------------
+-- plot tracks over detections
+------------------------------------------------------------
+fixedTracks = torch.zeros(1,F,D)
+fixedEx = torch.zeros(1,F):int()
+for tar=1,N do
+  started, finished=0,0
+  for t=1,F do
+    if (t==1 and predExBin[tar][t]==1) or (t>1 and predExBin[tar][t]==1 and predExBin[tar][t-1]==0) then
+      started=t
+    end
+    if (t==F and predExBin[tar][t]==1) or (t<F and predExBin[tar][t]==1 and predExBin[tar][t+1]==0) then
+      finished=t
+    end
+    if started>0 and finished>0 then
+      tmpTrack = torch.zeros(1,F,D)
+      tmpTrack[{{1},{started,finished},{}}] = finalTracks[{{tar},{started,finished},{}}]
+      fixedTracks=fixedTracks:cat(tmpTrack,1)
 
+      started=0
+      finished=0
+    end
+  end
+end
 
+if fixedTracks:size(1)>1 then
+  fixedTracks=fixedTracks:sub(2,-1)
+else
+  fixedTracks=finalTracks:clone()
+end
+
+plotTab = {}
+
+trueDets = alldetexlabels:reshape(maxAllDets, opt.temp_win, 1):expand(maxAllDets, opt.temp_win, stateDim)
+realDets = alldetections:clone():cmul(trueDets:float())
+
+plotTab = getDetectionsPlotTab(realDets, plotTab, nil, nil)
+
+plotTab = getTrackPlotTab(fixedTracks, plotTab, 2,nil,nil,1)
+
+plot(plotTab, 1, 'out', nil, 1)
+
+------------------------------------------------------------
+-- end: plot tracks over detections
+------------------------------------------------------------
