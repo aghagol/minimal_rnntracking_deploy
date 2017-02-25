@@ -52,27 +52,17 @@ function plot(data, winID, winTitle, rawStr, save)
   for _,v in pairs(rawStr) do gnuplot.raw(v) end
 
   -- if x available, display
-  if xAvailable() then
+  if xAvailable() and (not save or save==0) then
     gnuplot.plot(data)
     gnuplot.plotflush()
   end
 
   -- divert to png if no X xAvailable  UPDATE: Always save as png if flag set
   --   print(save)
-  if save>0 then
-        print('saving')
-        sleep(1)
-    gnuplot.raw('set term pngcairo enhanced font "arial,10" fontscale 1.0 size 2000,1000;')
-
-    -- make sure output directory exists (TODO take care of global vars here)
-    -- local _,_,modelName,modelSign = getCheckptFilename(modelName, opt, modelParams)
-    local outDir = string.format('/home/mo/github/rnntracking/tmp/%s_%s',modelName, modelSign)
-    if not lfs.attributes(outDir,'mode') then 
-      print(string.format("mkdir %s",outDir))
-      lfs.mkdir(outDir) 
-    end
-
-    gnuplot.raw(string.format("set output \"%s/%s.png\"",outDir,winTitle))
+  if save or save>0 then
+    print('saving figure')
+    gnuplot.raw('set term pngcairo enhanced font "arial,10" fontscale 1.0 size 1000,900;')
+    gnuplot.raw(string.format('set output \"%s\"', winTitle))
     gnuplot.plot(data)
     gnuplot.plotflush()
 

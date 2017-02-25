@@ -293,7 +293,7 @@ writeResTensor = writeResTensor:cat(predEx, 3)
 -- remove false tracks
 writeResTensor = writeResTensor:sub(1,maxAllTargets)
 
-writeTXT(writeResTensor, string.format("out.txt"))
+writeTXT(writeResTensor, 'out/out.txt')
 ------------------------------------------------------------
 -- end: compute tracks
 ------------------------------------------------------------
@@ -339,8 +339,33 @@ plotTab = getDetectionsPlotTab(realDets, plotTab, nil, nil)
 
 plotTab = getTrackPlotTab(fixedTracks, plotTab, 2,nil,nil,1)
 
-plot(plotTab, 1, 'out', nil, 1)
-
+plot(plotTab, nil, 'out/out.png', nil, true)
 ------------------------------------------------------------
 -- end: plot tracks over detections
 ------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
