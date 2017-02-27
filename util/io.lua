@@ -92,8 +92,8 @@ function writeTXT(data, datafile, thr, mode)
   if D>=4 then
     for i=1,N do
       for t=1,F do
-	data[i][t][1] = data[i][t][1] - data[i][t][3]/2
-	data[i][t][2] = data[i][t][2] - data[i][t][4]/2
+        data[i][t][1] = data[i][t][1] - data[i][t][3]/2
+        data[i][t][2] = data[i][t][2] - data[i][t][4]/2
       end
     end
   end 

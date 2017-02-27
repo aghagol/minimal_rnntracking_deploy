@@ -68,9 +68,6 @@ function plot(data, winID, winTitle, rawStr, save)
 
   end
 
-
-
-
 end
 
 --------------------------------------------------------------------------

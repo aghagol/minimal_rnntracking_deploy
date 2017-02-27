@@ -27,63 +27,60 @@ csvfile.write('./csv2.txt', m)       -- write matrix to file csv2.txt
 -- @param sep	the separator (default ',')
 -- @author David Amnon
 local function csvSplit(str, sep)
-    sep = sep or ','
-    fields={}
-    local matchfunc = string.gmatch(str, "([^"..sep.."]+)")
-    if not matchfunc then return {str} end
-    for str in matchfunc do
-        table.insert(fields, str)
-    end
-    return fields
+  sep = sep or ','
+  fields={}
+  local matchfunc = string.gmatch(str, "([^"..sep.."]+)")
+  if not matchfunc then return {str} end
+  for str in matchfunc do
+    table.insert(fields, str)
+  end
+  return fields
 end
 
 ---------------------------------------------------------------------
 function csvRead(path, sep, tonum)
-    tonum = tonum or true
-    sep = sep or ','
-    local csvFile = {}
-    local file = assert(io.open(path, "r"))
-    for line in file:lines() do
-        fields = csvSplit(line, sep)
-        if tonum then -- convert numeric fields to numbers
-            for i=1,#fields do
-                fields[i] = tonumber(fields[i]) or fields[i]
-            end
-        end
-        table.insert(csvFile, fields)
+  tonum = tonum or true
+  sep = sep or ','
+  local csvFile = {}
+  local file = assert(io.open(path, "r"))
+  for line in file:lines() do
+    fields = csvSplit(line, sep)
+    if tonum then -- convert numeric fields to numbers
+      for i=1,#fields do
+        fields[i] = tonumber(fields[i]) or fields[i]
+      end
     end
-    file:close()
-    return csvFile
+    table.insert(csvFile, fields)
+  end
+  file:close()
+  return csvFile
 end
 
 ---------------------------------------------------------------------
 function csvWrite(path, data, sep)
-    sep = sep or ','
-    local file = assert(io.open(path, "w"))
-    
-    if type(data)=='table' then
-      for i=1,#data do
-	  for j=1,#data[i] do
-	      if j>1 then file:write(sep) end
-	      file:write(data[i][j])
-	  end
-	  file:write('\n')
+  sep = sep or ','
+  local file = assert(io.open(path, "w"))
+  if type(data)=='table' then
+    for i=1,#data do
+      for j=1,#data[i] do
+        if j>1 then file:write(sep) end
+        file:write(data[i][j])
       end
-    elseif torch.isTensor(data) then
-      if data:nDimension() < 2 then -- zero solution case
--- 	file:write('\n')
-      else
-	for i=1,data:size(1) do
-	    for j=1,data:size(2) do
-		if j>1 then file:write(sep) end
-		file:write(data[i][j])
-	    end
-	    file:write('\n')
-	end      
-      end
-    else
-      error('unknown data type in csvwrite')
+      file:write('\n')
     end
-  
-    file:close()
+  elseif torch.isTensor(data) then
+    if data:nDimension() < 2 then -- zero solution case
+    else
+      for i=1,data:size(1) do
+        for j=1,data:size(2) do
+          if j>1 then file:write(sep) end
+          file:write(data[i][j])
+        end
+        file:write('\n')
+      end
+    end
+  else
+    error('unknown data type in csvwrite')
+  end
+  file:close()
 end
