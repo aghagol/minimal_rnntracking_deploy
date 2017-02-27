@@ -24,7 +24,7 @@ end
 seq_name    = "train/KITTI-13"
 model_bin   = "bin/rnnTracker_r300_l1_n1_m1_d4.t7"
 ------------------------------------------------------------
--- fucking global variables:
+-- global variables:
 opt = {
   model_split=0,
   dalink=1,
@@ -105,7 +105,7 @@ opt = {
   profiler=0,
   real_dets=1,
   daPredIndex=4,
-  temp_win=50,
+  temp_win=300,
   model="rnn",
   eval_val_every=10000,
   state_dim=4,
@@ -125,8 +125,8 @@ fullStateDim = stateDim
 maxTargets = 1
 maxDets = 20
 maxAllDets = maxDets
-nClasses = 2 -- maxDets + 1
-maxAllTargets = 5 -- or 5 ?
+nClasses = 2 -- what is this?
+maxAllTargets = 5 -- this para rules them all
 xSize = stateDim*maxTargets
 dSize = stateDim*maxDets
 T = opt.temp_win - opt.batch_size
@@ -256,7 +256,7 @@ for k,v in pairs(AllDetsTab) do AllunnormDetsTab[k] = AllDetsTab[k]:clone() end
 N,F,D = getDataSize(finalTracks)
 for t=1,F do -- what is this for???
   for i=1,N do
-    if predExBin[i][t] == 0 then finalTracks[i][t] = 0  end
+    -- if predExBin[i][t] == 0 then finalTracks[i][t] = 0  end
   end
 end
 
@@ -268,52 +268,48 @@ if realData then
 end
 
 writeResTensor = finalTracksTab[1]
-
 -- smash existence probability as dim = 5
 writeResTensor = writeResTensor:cat(predEx, 3)
-
 -- remove false tracks
 writeResTensor = writeResTensor:sub(1,maxAllTargets)
-
 writeTXT(writeResTensor, 'out/out.txt')
 ------------------------------------------------------------
 -- plot tracks over detections:
-fixedTracks = torch.zeros(1,F,D)
-fixedEx = torch.zeros(1,F):int()
-for tar=1,N do
-  started, finished=0,0
-  for t=1,F do
-    if (t==1 and predExBin[tar][t]==1) or (t>1 and predExBin[tar][t]==1 and predExBin[tar][t-1]==0) then
-      started=t
-    end
-    if (t==F and predExBin[tar][t]==1) or (t<F and predExBin[tar][t]==1 and predExBin[tar][t+1]==0) then
-      finished=t
-    end
-    if started>0 and finished>0 then
-      tmpTrack = torch.zeros(1,F,D)
-      tmpTrack[{{1},{started,finished},{}}] = finalTracks[{{tar},{started,finished},{}}]
-      fixedTracks=fixedTracks:cat(tmpTrack,1)
+-- fixedTracks = torch.zeros(1,F,D)
+-- fixedEx = torch.zeros(1,F):int()
+-- for tar=1,N do
+--   started, finished=0,0
+--   for t=1,F do
+--     if (t==1 and predExBin[tar][t]==1) or (t>1 and predExBin[tar][t]==1 and predExBin[tar][t-1]==0) then
+--       started=t
+--     end
+--     if (t==F and predExBin[tar][t]==1) or (t<F and predExBin[tar][t]==1 and predExBin[tar][t+1]==0) then
+--       finished=t
+--     end
+--     if started>0 and finished>0 then
+--       tmpTrack = torch.zeros(1,F,D)
+--       tmpTrack[{{1},{started,finished},{}}] = finalTracks[{{tar},{started,finished},{}}]
+--       fixedTracks=fixedTracks:cat(tmpTrack,1)
 
-      started=0
-      finished=0
-    end
-  end
-end
+--       started=0
+--       finished=0
+--     end
+--   end
+-- end
 
-if fixedTracks:size(1)>1 then
-  fixedTracks=fixedTracks:sub(2,-1)
-else
-  fixedTracks=finalTracks:clone()
-end
-
-plotTab = {}
+-- if fixedTracks:size(1)>1 then
+--   fixedTracks=fixedTracks:sub(2,-1)
+-- else
+--   fixedTracks=finalTracks:clone()
+-- end
 
 trueDets = alldetexlabels:reshape(maxAllDets, opt.temp_win, 1):expand(maxAllDets, opt.temp_win, stateDim)
 realDets = alldetections:clone():cmul(trueDets:float())
 
+plotTab = {}
 plotTab = getDetectionsPlotTab(realDets, plotTab, nil, nil)
-
-plotTab = getTrackPlotTab(fixedTracks, plotTab, 2,nil,nil,1)
+-- plotTab = getTrackPlotTab(fixedTracks, plotTab, 2,nil,nil,1)
+plotTab = getTrackPlotTab(finalTracks, plotTab, 2,nil,nil,1)
 
 plot(plotTab, nil, 'out/out.png', nil, true)
 ------------------------------------------------------------

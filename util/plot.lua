@@ -19,7 +19,7 @@ function plot(data, winID, winTitle, rawStr, save)
   --   if save == nil then save = false else
   --     if (save==true or save>0) then save=true else save=false end
   --   end
-  save = save or 0
+  save = save or false
 
   if type(rawStr) ~= 'table' then return end  --  GNU Plot commands must be passed in a table
 
@@ -52,16 +52,16 @@ function plot(data, winID, winTitle, rawStr, save)
   for _,v in pairs(rawStr) do gnuplot.raw(v) end
 
   -- if x available, display
-  if xAvailable() and (not save or save==0) then
+  if xAvailable() and (not save) then
     gnuplot.plot(data)
     gnuplot.plotflush()
   end
 
   -- divert to png if no X xAvailable  UPDATE: Always save as png if flag set
   --   print(save)
-  if save or save>0 then
+  if save then
     print('saving figure')
-    gnuplot.raw('set term pngcairo enhanced font "arial,10" fontscale 1.0 size 1000,900;')
+    gnuplot.raw(string.format('set term pngcairo enhanced font "arial,10" fontscale 1.0 size %d,900;',opt.temp_win*20))
     gnuplot.raw(string.format('set output \"%s\"', winTitle))
     gnuplot.plot(data)
     gnuplot.plotflush()
