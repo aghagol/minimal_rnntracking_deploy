@@ -26,37 +26,37 @@ model_bin   = "bin/rnnTracker_r300_l1_n1_m1_d4.t7"
 ------------------------------------------------------------
 -- global variables:
 opt = {
+  temp_win=50,
+  state_dim=4,
   max_n=1,
   max_m=1,
+  statePredIndex=2,
   statePredIndex2=3,
   rnn_size=300,
-  verbose=2,
   exPredIndex=4,
   use_gt_input=0,
   real_data=1,
-  batch_size=1,
-  reshuffle_dets=0, -- wow... don't mess with this one
   use_da_input=4,
-  ex_thr=0.5,
-  statePredIndex=2,
+  ex_thr=0.6,
   gpuid=0,
   mini_batch_size=1,
-  norm_std=-1, -- also don't mess with this
   num_layers=1,
   mu=0,
   profiler=0,
   real_dets=1,
-  temp_win=50,
-  state_dim=4,
+  batch_size=1,
+  verbose=2,
+  reshuffle_dets=0,
+  norm_std=-1
 }
+updLoss = true
+predLoss = true
+daLoss = false
+exVar = true
 imSizes = {[seq_name]={imH=375,imW=1242}}
-updLoss = opt.kappa ~= 0
-predLoss = opt.lambda ~= 0
-daLoss = opt.mu ~= 0
-exVar = opt.nu ~= 0
 miniBatchSize = 1
 stateDim = opt.state_dim
-fullStateDim = stateDim
+fullStateDim = opt.state_dim
 maxTargets = 1
 maxDets = 20
 maxAllDets = maxDets
@@ -128,16 +128,6 @@ for tar=1,maxAllTargets do
   end
 end
 
-stateLocs, stateLocs2, stateDA, stateEx, statePred = {}, {}, {}, {}, {}
-AllstateLocs, AllstateLocs2, AllstateDA, AllstateEx, AllstatePred = {}, {}, {}, {}, {}
-for tar=1,maxAllTargets do
-  AllstateLocs[tar]={} for t=1,T do AllstateLocs[tar][t] = {} end
-  AllstateLocs2[tar]={} for t=1,T do AllstateLocs2[tar][t] = {} end
-  AllstateDA[tar]={} for t=1,T do AllstateDA[tar][t] = {} end
-  AllstateEx[tar]={} for t=1,T do AllstateEx[tar][t] = {} end
-  AllstatePred[tar]={} for t=1,T do AllstatePred[tar][t] = {} end
-end
-
 for t=1,T do
   Allrnninps, Allrnn_states = getRNNInput(t, Allrnn_states, Allpredictions)
 
@@ -164,11 +154,6 @@ for t=1,T do
   end
 
   predictions = moveState(Allpredictions, t)
-  A,B,C = decode(Allpredictions, t)
-  for tar=1,maxAllTargets do
-    AllstateLocs[tar] = A[tar]:clone()
-    AllstateLocs2[tar] = B[tar]:clone()
-  end
 end
 ------------------------------------------------------------
 -- compute tracks:
