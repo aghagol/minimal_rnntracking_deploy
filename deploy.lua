@@ -78,7 +78,7 @@ protos.rnn:evaluate() -- TESTING mode
 -- read data:
 AllTracksTab, AllDetsTab, AllLabTab, AllExTab, AllDetExTab  = prepareData('real', {seq_name}, {seq_name},  true)
 ------------------------------------------------------------
--- some more fucking global variables:
+-- some more global variables:
 realTracksTab = AllTracksTab
 realDetsTab = AllDetsTab
 realLabTab = AllLabTab
