@@ -9,7 +9,7 @@ require "util.plot"
 require "util.data"
 require "util.misc"
 require "external.hungarian"
-require 'auxBFPAR'
+require "auxBFPAR"
 ------------------------------------------------------------
 -- define some helper functions:
 function getLocFromFullState(state)
@@ -105,7 +105,7 @@ opt = {
   profiler=0,
   real_dets=1,
   daPredIndex=4,
-  temp_win=300,
+  temp_win=50,
   model="rnn",
   eval_val_every=10000,
   state_dim=4,
@@ -274,42 +274,42 @@ writeResTensor = writeResTensor:cat(predEx, 3)
 writeResTensor = writeResTensor:sub(1,maxAllTargets)
 writeTXT(writeResTensor, 'out/out.txt')
 ------------------------------------------------------------
+-- fix the tracks using the existence probabilities:
+fixedTracks = torch.zeros(1,F,D)
+fixedEx = torch.zeros(1,F):int()
+for tar=1,N do
+  started, finished=0,0
+  for t=1,F do
+    if (t==1 and predExBin[tar][t]==1) or (t>1 and predExBin[tar][t]==1 and predExBin[tar][t-1]==0) then
+      started=t
+    end
+    if (t==F and predExBin[tar][t]==1) or (t<F and predExBin[tar][t]==1 and predExBin[tar][t+1]==0) then
+      finished=t
+    end
+    if started>0 and finished>0 then
+      tmpTrack = torch.zeros(1,F,D)
+      tmpTrack[{{1},{started,finished},{}}] = finalTracks[{{tar},{started,finished},{}}]
+      fixedTracks=fixedTracks:cat(tmpTrack,1)
+
+      started=0
+      finished=0
+    end
+  end
+end
+if fixedTracks:size(1)>1 then
+  fixedTracks=fixedTracks:sub(2,-1)
+else
+  fixedTracks=finalTracks:clone()
+end
+------------------------------------------------------------
 -- plot tracks over detections:
--- fixedTracks = torch.zeros(1,F,D)
--- fixedEx = torch.zeros(1,F):int()
--- for tar=1,N do
---   started, finished=0,0
---   for t=1,F do
---     if (t==1 and predExBin[tar][t]==1) or (t>1 and predExBin[tar][t]==1 and predExBin[tar][t-1]==0) then
---       started=t
---     end
---     if (t==F and predExBin[tar][t]==1) or (t<F and predExBin[tar][t]==1 and predExBin[tar][t+1]==0) then
---       finished=t
---     end
---     if started>0 and finished>0 then
---       tmpTrack = torch.zeros(1,F,D)
---       tmpTrack[{{1},{started,finished},{}}] = finalTracks[{{tar},{started,finished},{}}]
---       fixedTracks=fixedTracks:cat(tmpTrack,1)
-
---       started=0
---       finished=0
---     end
---   end
--- end
-
--- if fixedTracks:size(1)>1 then
---   fixedTracks=fixedTracks:sub(2,-1)
--- else
---   fixedTracks=finalTracks:clone()
--- end
-
 trueDets = alldetexlabels:reshape(maxAllDets, opt.temp_win, 1):expand(maxAllDets, opt.temp_win, stateDim)
 realDets = alldetections:clone():cmul(trueDets:float())
 
 plotTab = {}
 plotTab = getDetectionsPlotTab(realDets, plotTab, nil, nil)
--- plotTab = getTrackPlotTab(fixedTracks, plotTab, 2,nil,nil,1)
 plotTab = getTrackPlotTab(finalTracks, plotTab, 2,nil,nil,1)
+-- plotTab = getTrackPlotTab(fixedTracks, plotTab, 2,nil,nil,1)
 
 plot(plotTab, nil, 'out/out.png', nil, true)
 ------------------------------------------------------------
