@@ -38,7 +38,7 @@ opt = {
   lrng_rate=3e-05,
   dropout=0.03,
   random_epoch=0,
-  seed=3,
+  seed=12,
   kappa=1,
   miss_thr=0.05,
   synth_valid=1,
@@ -141,10 +141,16 @@ protos = checkpoint.protos
 protos.rnn:evaluate() -- TESTING mode
 ------------------------------------------------------------
 -- read data:
-realTracksTab, realDetsTab, realLabTab, realExTab, realDetExTab, realSeqNames = prepareData('real', {seq_name}, {seq_name},  true)
 AllTracksTab, AllDetsTab, AllLabTab, AllExTab, AllDetExTab  = prepareData('real', {seq_name}, {seq_name},  true)
 ------------------------------------------------------------
 -- some more fucking global variables:
+realTracksTab = AllTracksTab
+realDetsTab = AllDetsTab
+realLabTab = AllLabTab
+realExTab = AllExTab
+realDetExTab = AllDetExTab
+realSeqNames = {{seq_name}}
+
 tracks = realTracksTab[1]
 detections = realDetsTab[1]:clone()
 labels = realLabTab[1]:clone() -- only for debugging
@@ -187,16 +193,6 @@ for tar=1,maxAllTargets do
   end
 end
 
-stateLocs, stateLocs2, stateDA, stateEx, statePred = {}, {}, {}, {}, {}
-AllstateLocs, AllstateLocs2, AllstateDA, AllstateEx, AllstatePred = {}, {}, {}, {}, {}
-for tar=1,maxAllTargets do
-  AllstateLocs[tar]={} for t=1,T do AllstateLocs[tar][t] = {} end
-  AllstateLocs2[tar]={} for t=1,T do AllstateLocs2[tar][t] = {} end
-  AllstateDA[tar]={} for t=1,T do AllstateDA[tar][t] = {} end
-  AllstateEx[tar]={} for t=1,T do AllstateEx[tar][t] = {} end
-  AllstatePred[tar]={} for t=1,T do AllstatePred[tar][t] = {} end
-end
-
 for t=1,T do
   Allrnninps, Allrnn_states = getRNNInput(t, Allrnn_states, Allpredictions)
 
@@ -223,11 +219,6 @@ for t=1,T do
   end
 
   predictions = moveState(Allpredictions, t)
-  A,B,C = decode(Allpredictions, t)
-  for tar=1,maxAllTargets do
-    AllstateLocs[tar] = A[tar]:clone()
-    AllstateLocs2[tar] = B[tar]:clone()
-  end
 end
 ------------------------------------------------------------
 -- compute tracks:
