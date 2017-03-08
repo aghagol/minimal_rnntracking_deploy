@@ -73,45 +73,45 @@ torch.setdefaulttensortype('torch.FloatTensor')
 torch.manualSeed(12)
 ------------------------------------------------------------
 -- load the model:
-checkpoint = torch.load(model_bin)
-protos = checkpoint.protos
+local checkpoint = torch.load(model_bin)
+local protos = checkpoint.protos
 protos.rnn:evaluate() -- TESTING mode
 ------------------------------------------------------------
 -- read data:
-AllTracksTab, AllDetsTab, AllLabTab, AllExTab, AllDetExTab  = prepareData('real', {seq_name}, {seq_name},  true)
+local AllTracksTab, AllDetsTab, AllLabTab, AllExTab, AllDetExTab  = prepareData('real', {seq_name}, {seq_name},  true)
+------------------------------------------------------------
+-- some local variables:
+local realTracksTab = AllTracksTab
+local realDetsTab = AllDetsTab
+local realLabTab = AllLabTab
+local realExTab = AllExTab
+local realDetExTab = AllDetExTab
+local realSeqNames = {{seq_name}}
+local tracks = realTracksTab[1]
+local labels = realLabTab[1]:clone() -- only for debugging
+local exlabels = realExTab[1]:clone()
 ------------------------------------------------------------
 -- some more global variables:
-realTracksTab = AllTracksTab
-realDetsTab = AllDetsTab
-realLabTab = AllLabTab
-realExTab = AllExTab
-realDetExTab = AllDetExTab
-realSeqNames = {{seq_name}}
-
-tracks = realTracksTab[1]
 detections = realDetsTab[1]:clone()
-labels = realLabTab[1]:clone() -- only for debugging
-exlabels = realExTab[1]:clone()
 detexlabels = realDetExTab[1]:clone()
 alldetections = AllDetsTab[1]:clone()
 alldetexlabels = AllDetExTab[1]:clone()
 ------------------------------------------------------------
 -- get initial state of cell/hidden states
-init_state = {}
+local init_state = {}
 for L=1,opt.num_layers do
   local h_init = torch.zeros(1, opt.rnn_size)
   table.insert(init_state, h_init:clone())
 end
-rnn_state = {[0] = init_state}
 
-Allrnn_states = {}
+local Allrnn_states = {}
 for tar=1,maxAllTargets do
   Allrnn_states[tar] = {}
   for t=1,T do Allrnn_states[tar][t] = {} end
   Allrnn_states[tar][0] = init_state
 end
 
-protosClones = {}
+local protosClones = {}
 for tar=1,maxAllTargets do
   table.insert(protosClones, protos.rnn:clone())
 end
@@ -131,7 +131,7 @@ for tar=1,maxAllTargets do
 end
 
 for t=1,T do
-  Allrnninps, Allrnn_states = getRNNInput(t, Allrnn_states, Allpredictions)
+  Allrnninps = getRNNInput(t, Allrnn_states, Allpredictions)
 
   allLst={}
   for tar=1,maxAllTargets do

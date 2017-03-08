@@ -434,6 +434,7 @@ function getRNNInput(t, Allrnn_states, Allpredictions, statePred, statePredEx)
     end
 
     local fullAllDist = torch.ones(maxAllTargets, maxAllDets+maxAllTargets) * missThr
+    -- fullAllDist = torch.ones(maxAllTargets, maxAllDets+maxAllTargets) * missThr -- mohammad debug
     for tar=1,maxAllTargets do
       for det=1,maxAllDets do
         if alldetexlabels[det][t+1]==1 then
@@ -787,7 +788,7 @@ function getRNNInput(t, Allrnn_states, Allpredictions, statePred, statePredEx)
   if opt.profiler ~= 0 then  profUpdate('getRNNInput ExLab', loctimer2:time().real) end
 
   if opt.profiler ~= 0 then  profUpdate(debug.getinfo(1,"n").name, loctimer:time().real) end
-  return Allrnninps, Allrnn_states
+  return Allrnninps --, Allrnn_states
 end
 
 --------------------------------------------------------------------------
